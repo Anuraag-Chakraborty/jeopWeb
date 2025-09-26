@@ -1,0 +1,22 @@
+    body {
+      background-color: #050520;
+      color: #00ffff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    #timer {
+      font-size: 72px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0,255,255,0.7);
+      user-select: none;
+    }
+    #message {
+      font-size: 24px;
+      margin-top: 20px;
+      color: #ff4444;
+    }
