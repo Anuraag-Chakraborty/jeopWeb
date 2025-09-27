@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Jeopardy.css';
 
-const USER_ID = "45";
-const TEAM_ID = "46b10396-db5b-42b8-8f09-8f43be60d894";
+const USER_ID = "76";
+const TEAM_ID = "680e4a64-bda3-42a3-865e-cbfbf64131b4";
 
-const JWT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NCwiZW1haWwiOiJzdHJpbmciLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NTg5MTE4NzgsImV4cCI6MTc1ODkxMjc3OH0.F5iP_ndsi2ZgyQrrUT3-aMm2VjkcSfoTCFN8foAna9g";
+const JWT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ODIsImVtYWlsIjoiamVvcGFyZHl0ZXN0QGdtYWlsLmNvbSIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzU4OTUzODQ0LCJleHAiOjE3NTg5NTQ3NDR9.okoeX18o30x6l0ioRf11FRVhW7IGJ8MPwPT1VSYNbtY";
 
-const API_BASE = "https://gravitas-backend-25.onrender.com";
+const API_BASE = "http://localhost:3000";
 const axiosInstance = axios.create({
   baseURL: API_BASE,
   headers: {
@@ -17,24 +17,24 @@ const axiosInstance = axios.create({
 });
 
 const categories = [
-  { id: "a7a9e14a-5c7b-40b8-9b8e-1d63e9c2c6b3", name: "ADDITION" },
-  { id: "b8b0f25c-6d8c-41c9-a2a4-2e74f0d3d7c4", name: "SUBTRACTION" },
-  { id: "c9c1d36e-7e9d-42da-b3b5-3f85g1e4f8d5", name: "MOVIES" },
-  { id: "d2d3e47f-8f0e-53eb-c4c6-4g96h2f5i9e6", name: "LITERATURE" },
-  { id: "e4e5f58g-9g1f-64fc-d5d7-5h07i3g6j0f7", name: "GEOGRAPHY" }
+  { id: "2bcbf4eb-7211-47d8-b46e-5a0ce0273da5", name: "FinTech Frontier" },
+  { id: "91505992-b5fd-4541-bfa0-02ecf2415bb6", name: "Language Lab" },
+  { id: "b15b5d75-18d7-4c12-a6fe-729b117764fc", name: "What's That Tech?" },
+  { id: "c8035958-0082-4948-a587-bb53212a36c3", name: "Brain Benders" },
+  { id: "e6a60e63-08ef-4d5e-9b55-9eeb5e6f0794", name: "Expand It!!" }
 ];
 
 const difficultyMap = {
-  200: "Easy",
-  400: "Medium",
-  600: "Hard",
-  800: "Very hard",
-  1000: "Expert"
+  200: "Very Easy",
+  400: "Easy",
+  600: "Medium",
+  800: "Hard",
+  1000: "Very Hard"
 };
 
 export default function Jeopardy() {
   const [score, setScore] = useState(0);
-  const [answeredQuestions, setAnsweredQuestions] = useState([]);
+  const [answeredQuestions, setAnsweredQuestions] = useState([]); // categoryId-difficulty
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -42,26 +42,30 @@ export default function Jeopardy() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Fetch already attempted questions for this team
+  const fetchAttemptedQuestions = async () => {
+    try {
+      const res = await axiosInstance.post("/jeopardy/player/get-attempted", {
+        teamId: TEAM_ID
+      });
+      if (res.data?.attempted) setAnsweredQuestions(res.data.attempted);
+    } catch (err) {
+      console.error("Failed to fetch attempted questions:", err);
+    }
+  };
+
   const fetchTeamPoints = async () => {
-  try {
-    const res = await axiosInstance.post("jeopardy/player/teampoints", { teamId: TEAM_ID });
-    const teamPoints = res.data?.team?.teamPoints ?? 0;
-    setScore(teamPoints);
-  } catch (error) {
-    console.error("Failed to fetch team points:", error);
-  }
-};
-
-  useEffect(() => {
-    fetchTeamPoints();
-  }, []);
-
-  const refetchScoreboard = async () => {
-    await fetchTeamPoints(); 
+    try {
+      const res = await axiosInstance.post("/jeopardy/player/teampoints", { teamId: TEAM_ID });
+      setScore(res.data?.team?.teamPoints ?? 0);
+    } catch (err) {
+      console.error("Failed to fetch team points:", err);
+    }
   };
 
   useEffect(() => {
     fetchTeamPoints();
+    fetchAttemptedQuestions();
   }, []);
 
   const handleQuestionClick = async (questionId) => {
@@ -82,10 +86,10 @@ export default function Jeopardy() {
         difficulty
       });
 
-      setAnsweredQuestions((prev) => [...prev, questionId]);
+      // Add to attempted for this team
+      setAnsweredQuestions(prev => [...prev, questionId]);
 
       const backendQuestionId = response.data.question.id;
-
       setCurrentQuestion({
         frontendId: questionId,
         id: backendQuestionId,
@@ -99,9 +103,9 @@ export default function Jeopardy() {
       setFeedback(null);
       setSubmitted(false);
       setModalVisible(true);
-    } catch (error) {
-      console.error("Choose question error:", error);
-      alert(`Failed to choose question: ${error.message}`);
+    } catch (err) {
+      console.error("Choose question error:", err);
+      alert(`Failed to choose question: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -113,46 +117,28 @@ export default function Jeopardy() {
   };
 
   const handleAnswerSubmit = async () => {
-  if (!selectedOption || !currentQuestion?.id || loading) return;
-  try {
-    setLoading(true);
-    const response = await axiosInstance.post("/jeopardy/player/submit-answer", {
-      userId: USER_ID,
-      teamId: TEAM_ID,
-      questionId: currentQuestion.id,
-      selectedOption,
-    });
+    if (!selectedOption || !currentQuestion?.id || loading) return;
+    try {
+      setLoading(true);
+      const res = await axiosInstance.post("/jeopardy/player/submit-answer", {
+        userId: USER_ID,
+        teamId: TEAM_ID,
+        questionId: currentQuestion.id,
+        selectedOption
+      });
 
-    setFeedback(response.data.correct ? "correct" : "incorrect");
-    setSubmitted(true);
-
-    // Update score using response.points
-    if (response.teamPoints !== undefined) {
-      setScore(response.teamPoints);
-    } else {
-      await fetchTeamPoints();
-  }
- } catch (error) {
-    console.error("Submit answer error:", error);
-    alert(`Failed to submit answer: ${error.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-  const handleSkip = () => {
-    setModalVisible(false);
-    setCurrentQuestion(null);
-    setSelectedOption(null);
-    setFeedback(null);
-    setSubmitted(false);
+      setFeedback(res.data.correct ? "correct" : "incorrect");
+      setSubmitted(true);
+      fetchTeamPoints();
+    } catch (err) {
+      console.error("Submit answer error:", err);
+      alert(`Failed to submit answer: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleContinue = () => {
-    if (currentQuestion?.frontendId) {
-      setAnsweredQuestions((prev) => [...new Set([...prev, currentQuestion.frontendId])]);
-    }
     setModalVisible(false);
     setCurrentQuestion(null);
     setSelectedOption(null);
@@ -161,26 +147,19 @@ export default function Jeopardy() {
   };
 
   const renderGameBoard = () => {
-    if (loading && !modalVisible) {
-      return (
-        <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", justifyContent: "center", height: "200px", fontSize: "24px" }}>
-          Loading...
-        </div>
-      );
-    }
-
     const values = [200, 400, 600, 800, 1000];
+
     return (
       <>
-        {categories.map((cat) => (
-          <div key={`header-${cat.id}`} className="category-header">
-            {cat.name}
-          </div>
+        {categories.map(cat => (
+          <div key={`header-${cat.id}`} className="category-header">{cat.name}</div>
         ))}
-        {values.map((val) =>
-          categories.map((cat) => {
-            const questionId = `${cat.id}-${val}`;
-            const isAnswered = answeredQuestions.includes(questionId);
+
+        {values.map(val =>
+          categories.map(cat => {
+            const questionId = `${cat.id}-${val}`; // categoryId-value
+            const isAnswered = answeredQuestions.includes(questionId); // team-specific
+
             return (
               <div
                 key={questionId}
@@ -189,7 +168,7 @@ export default function Jeopardy() {
                 role="button"
                 aria-disabled={isAnswered}
                 tabIndex={isAnswered ? -1 : 0}
-                onKeyDown={(e) => {
+                onKeyDown={e => {
                   if (!isAnswered && (e.key === "Enter" || e.key === " ")) {
                     e.preventDefault();
                     handleQuestionClick(questionId);
@@ -205,110 +184,46 @@ export default function Jeopardy() {
     );
   };
 
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && modalVisible) {
-        setModalVisible(false);
-        alert("Leaving the tab hides the question.");
-      }
-    };
-
-    const disableKeys = (e) => {
-      if (!modalVisible) return;
-      if (e.ctrlKey && ["c", "v", "u", "s", "C", "V", "U", "S"].includes(e.key)) {
-        e.preventDefault();
-        alert("This action is disabled while the question is visible.");
-      }
-    };
-
-    const contextMenuHandler = (e) => {
-      if (modalVisible) e.preventDefault();
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    document.addEventListener("keydown", disableKeys);
-    document.addEventListener("contextmenu", contextMenuHandler);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      document.removeEventListener("keydown", disableKeys);
-      document.removeEventListener("contextmenu", contextMenuHandler);
-    };
-  }, [modalVisible]);
-
-  if (loading && !modalVisible) {
-    return (
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          background: "rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 999,
-          color: "white",
-          fontSize: "24px"
-        }}
-      >
-        Loading...
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="score-badge">Score: {score}</div>
-      <div className="game-board" id="gameBoard">
-        {renderGameBoard()}
-      </div>
+      <div className="game-board">{renderGameBoard()}</div>
 
       {modalVisible && currentQuestion && (
-        <div className="modal" role="dialog" aria-modal="true" aria-labelledby="questionValue" aria-describedby="questionText">
+        <div className="modal">
           <div className="modal-content">
-            <div className="question-value" id="questionValue">
-              {currentQuestion.displayValue || currentQuestion.value}
-            </div>
-            <div id="questionText" className={feedback === "correct" ? "correct" : feedback === "incorrect" ? "incorrect" : ""}>
-              {feedback === "correct" ? "Correct!" : feedback === "incorrect" ? `Sorry — correct answer: Unknown` : currentQuestion.question}
+            <div className="question-value">{currentQuestion.displayValue || currentQuestion.value}</div>
+            <div className={feedback === "correct" ? "correct" : feedback === "incorrect" ? "incorrect" : ""}>
+              {feedback === "correct" ? "Correct!" : feedback === "incorrect" ? "Incorrect!" : currentQuestion.question}
             </div>
 
             {!feedback && (
               <>
                 <div className="options-container">
-                  {currentQuestion.options.map((option, index) => (
-                    <label key={index} className="option-item">
+                  {Object.entries(currentQuestion.options).map(([key, value], i) => (
+                    <label key={i} className="option-item">
                       <input
                         type="radio"
                         name="answerOption"
-                        value={option}
-                        checked={selectedOption === option}
-                        onChange={() => handleOptionSelect(option)}
+                        value={key}
+                        checked={selectedOption === key}
+                        onChange={() => handleOptionSelect(key)}
                         disabled={submitted || loading}
-                        style={{ marginRight: "0.75rem" }}
                       />
-                      <span className="option-label">{option}</span>
+                      <span>{key}: {value}</span>
                     </label>
                   ))}
                 </div>
-                <div>
-                  <button onClick={handleAnswerSubmit} className="submit-btn" disabled={!selectedOption || submitted || loading}>
-                    {loading ? "Submitting..." : "Submit"}
-                  </button>
-                  <button onClick={handleSkip} className="skip-btn" disabled={loading}>
-                    Skip
-                  </button>
-                </div>
+
+                <button onClick={handleAnswerSubmit} disabled={!selectedOption || submitted || loading}>
+                  {loading ? "Submitting..." : "Submit"}
+                </button>
+                <button onClick={handleContinue} disabled={loading}>Skip / Continue</button>
               </>
             )}
 
             {feedback && (
-              <button className="submit-btn" onClick={handleContinue} disabled={loading}>
-                Continue
-              </button>
+              <button onClick={handleContinue} disabled={loading}>Continue</button>
             )}
           </div>
         </div>
