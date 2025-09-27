@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Jeopardy.css';
 
-const USER_ID = "76";
-const TEAM_ID = "680e4a64-bda3-42a3-865e-cbfbf64131b4";
+const USER_ID = "83";
+const TEAM_ID = "798a1dc6-dbf1-494c-af48-f1b56bae1a33";
 
-const JWT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ODIsImVtYWlsIjoiamVvcGFyZHl0ZXN0QGdtYWlsLmNvbSIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzU4OTUzODQ0LCJleHAiOjE3NTg5NTQ3NDR9.okoeX18o30x6l0ioRf11FRVhW7IGJ8MPwPT1VSYNbtY";
+const JWT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ODQsImVtYWlsIjoicmFuZG9tLjE0MjAyNEB2aXRzdHVkZW50LmFjLmluIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NTg5NTg4MDEsImV4cCI6MTc1ODk1OTcwMX0.DDazUuvY91HwoK00sD-hJWqPoxK18lEWOmwK5-RC74s";
 
 const API_BASE = "http://localhost:3000";
 const axiosInstance = axios.create({
@@ -44,11 +44,11 @@ export default function Jeopardy() {
 
   // Fetch already attempted questions for this team
   const fetchAttemptedQuestions = async () => {
-    try {
-      const res = await axiosInstance.post("/jeopardy/player/get-attempted", {
-        teamId: TEAM_ID
-      });
-      if (res.data?.attempted) setAnsweredQuestions(res.data.attempted);
+  try {
+    const res = await axiosInstance.post("/jeopardy/player/get-attempted", {
+      teamId: TEAM_ID
+    });
+    if (res.data?.attempted) setAnsweredQuestions(res.data.attempted); 
     } catch (err) {
       console.error("Failed to fetch attempted questions:", err);
     }
@@ -68,53 +68,50 @@ export default function Jeopardy() {
     fetchAttemptedQuestions();
   }, []);
 
-  const handleQuestionClick = async (questionId) => {
-    if (answeredQuestions.includes(questionId) || loading) return;
-
-    const parts = questionId.split("-");
-    const valueStr = parts.pop();
-    const categoryId = parts.join("-");
-    const value = parseInt(valueStr, 10);
-    const difficulty = difficultyMap[value];
-
-    try {
-      setLoading(true);
-      const response = await axiosInstance.post("/jeopardy/player/choose-question", {
-        userId: USER_ID,
-        teamId: TEAM_ID,
-        categoryId,
-        difficulty
-      });
-
-      // Add to attempted for this team
-      setAnsweredQuestions(prev => [...prev, questionId]);
-
-      const backendQuestionId = response.data.question.id;
-      setCurrentQuestion({
-        frontendId: questionId,
-        id: backendQuestionId,
-        value: response.data.question.points || value,
-        displayValue: value,
-        question: response.data.question.questionText,
-        options: response.data.question.options
-      });
-
-      setSelectedOption(null);
-      setFeedback(null);
-      setSubmitted(false);
-      setModalVisible(true);
-    } catch (err) {
-      console.error("Choose question error:", err);
-      alert(`Failed to choose question: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOptionSelect = (option) => {
+   const handleOptionSelect = (option) => {
     if (submitted) return;
     setSelectedOption(option);
   };
+
+  const handleQuestionClick = async (questionId, categoryId, difficulty) => {
+  if (answeredQuestions.includes(questionId) || loading) return;
+
+  try {
+    setLoading(true);
+
+    const response = await axiosInstance.post("/jeopardy/player/choose-question", {
+      userId: USER_ID,
+      teamId: TEAM_ID,
+      categoryId,   // send UUID only
+      difficulty    // send difficulty string
+    });
+
+    // Add question to answered list (frontend tracking)
+    setAnsweredQuestions(prev => [...prev, questionId]);
+
+    const backendQuestionId = response.data.question.id;
+
+    setCurrentQuestion({
+      frontendId: questionId,
+      id: backendQuestionId,
+      value: response.data.question.points || 0,
+      displayValue: response.data.question.points || 0,
+      question: response.data.question.questionText,
+      options: response.data.question.options
+    });
+
+    setSelectedOption(null);
+    setFeedback(null);
+    setSubmitted(false);
+    setModalVisible(true);
+  } catch (err) {
+    console.error("Choose question error:", err);
+    alert(`Failed to choose question: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleAnswerSubmit = async () => {
     if (!selectedOption || !currentQuestion?.id || loading) return;
@@ -147,31 +144,32 @@ export default function Jeopardy() {
   };
 
   const renderGameBoard = () => {
-    const values = [200, 400, 600, 800, 1000];
+  const values = [200, 400, 600, 800, 1000];
 
-    return (
-      <>
-        {categories.map(cat => (
-          <div key={`header-${cat.id}`} className="category-header">{cat.name}</div>
-        ))}
+  return (
+    <>
+      {categories.map(cat => (
+        <div key={`header-${cat.id}`} className="category-header">{cat.name}</div>
+      ))}
 
-        {values.map(val =>
-          categories.map(cat => {
-            const questionId = `${cat.id}-${val}`; // categoryId-value
-            const isAnswered = answeredQuestions.includes(questionId); // team-specific
+      {values.map(val =>
+        categories.map(cat => {
+          const difficulty = difficultyMap[val];
+          const questionId = `${cat.id}-${difficulty}`; // for frontend tracking
+          const isAnswered = answeredQuestions.includes(questionId); // exhausted globally per team
 
-            return (
-              <div
-                key={questionId}
-                className={`value-cell ${isAnswered ? "answered" : ""}`}
-                onClick={() => !isAnswered && handleQuestionClick(questionId)}
-                role="button"
-                aria-disabled={isAnswered}
-                tabIndex={isAnswered ? -1 : 0}
-                onKeyDown={e => {
-                  if (!isAnswered && (e.key === "Enter" || e.key === " ")) {
-                    e.preventDefault();
-                    handleQuestionClick(questionId);
+          return (
+            <div
+              key={questionId}
+              className={`value-cell ${isAnswered ? "answered" : ""}`}
+              onClick={() => !isAnswered && handleQuestionClick(questionId, cat.id, difficulty)}
+              role="button"
+              aria-disabled={isAnswered}
+              tabIndex={isAnswered ? -1 : 0}
+              onKeyDown={e => {
+                if (!isAnswered && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault();
+                  handleQuestionClick(questionId, cat.id, difficulty);
                   }
                 }}
               >
@@ -183,7 +181,6 @@ export default function Jeopardy() {
       </>
     );
   };
-
   return (
     <>
       <div className="score-badge">Score: {score}</div>

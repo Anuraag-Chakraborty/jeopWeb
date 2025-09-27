@@ -124,89 +124,118 @@ body::before {
 .options-container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin: 1.25rem 0;
-  text-align: left;
+  gap: 12px;
+  margin: 1rem 0;
 }
 
-.option-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.option-label {
+.option-btn {
+  padding: 12px 18px;
+  border: 2px solid #6a0dad; /* deep purple */
+  background-color: #f3e8ff; /* light purple */
+  color: #6a0dad;
+  font-size: 16px;
+  border-radius: 12px;
   cursor: pointer;
-  padding: 0.5rem;
-  background-color: #4b1c72;
-  border-radius: 0.25rem;
-  flex: 1;
   text-align: left;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.option-label:hover {
-  background-color: #5a237a;
+/* Hover animation */
+.option-btn:hover {
+  background-color: #d9b3ff;
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(106, 13, 173, 0.6);
+}
+
+/* Selected state */
+.option-btn.selected {
+  background-color: #6a0dad;
+  color: white;
+  font-weight: bold;
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(106, 13, 173, 0.8);
+}
+
+/* Disabled state */
+.option-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Key and text styling */
+.option-key {
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.option-text {
+  font-weight: 500;
+}
+
+/* Modal buttons */
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.submit-btn, .skip-btn {
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .submit-btn {
-  background: linear-gradient(90deg, #00ffff, #00bcd4);
-  color: #ffffff;
-  box-shadow: 0 0 12px #19cfff99, 0 0 2px #2363fb77;
-  border: none;
-  outline: none;
-  transition: background 0.15s, box-shadow 0.1s, transform 0.1s;
-  margin-top: 16px;
-  padding: 12px 22px;
-  font-weight: bold;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-  margin-right: 10px;
+  background: linear-gradient(45deg, #8000ff, #b399ff);
 }
-.submit-btn:hover:not(:disabled), .submit-btn:focus {
-  background: linear-gradient(90deg, #2363fb 10%, #19cfff 90%);
-  box-shadow: 0 0 20px #19cfffcc, 0 0 8px #2363fb99;
-  color: #fff;
-  transform: translateY(-3px) scale(1.07);
+
+.submit-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(128, 0, 255, 0.7);
 }
 
 .submit-btn:disabled {
-  opacity: 0.6;
+  background-color: #b399ff;
   cursor: not-allowed;
-  transform: none;
+  box-shadow: none;
 }
 
 .skip-btn {
-  background: linear-gradient(90deg, #5f5f8b 0%, #7674a8 100%);
-  color: #e5e5f7;
-  box-shadow: 0 0 10px #5f5f8baa, 0 0 1.5px #7674a877;
-  border: none;
-  outline: none;
-  transition: background 0.17s, box-shadow 0.1s, transform 0.1s;
-  margin-top: 16px;
-  padding: 12px 22px;
-  font-weight: bold;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-}
-.skip-btn:hover, .skip-btn:focus {
-  background: linear-gradient(90deg, #7674a8 0%, #5f5f8b 100%);
-  box-shadow: 0 0 16px #7674a8cc, 0 0 7px #5f5f8baa;
-  color: #fff;
-  transform: translateY(-2px) scale(1.04);
+  background: linear-gradient(45deg, #c066ff, #e0b3ff);
 }
 
+.skip-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(192, 102, 255, 0.7);
+}
+
+.skip-btn:disabled {
+  background-color: #e0b3ff;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Feedback */
 .correct {
-  color: #4caf50;
-  font-weight: 600;
+  color: #4bb543;
+  font-weight: bold;
+  margin-top: 10px;
+  font-size: 18px;
 }
 
 .incorrect {
-  color: #ff5252;
-  font-weight: 600;
+  color: #ff4d4f;
+  font-weight: bold;
+  margin-top: 10px;
+  font-size: 18px;
 }
+
 
 .score-badge {
   position: fixed;
